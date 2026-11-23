@@ -65,6 +65,9 @@ final class SwiftDataTrackRepository: TrackRepository {
                 trip: trip
             )
             context.insert(seed)
+            Log.repo.info("여행 생성 + 집 시작점 seed (\(lat, privacy: .public),\(lon, privacy: .public))")
+        } else {
+            Log.repo.info("여행 생성(집 좌표 없음, seed 생략)")
         }
 
         try context.save()

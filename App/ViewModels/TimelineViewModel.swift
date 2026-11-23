@@ -40,8 +40,9 @@ final class TimelineViewModel: ObservableObject {
             )
             try planRepository.add(item, to: trip)
             reload()
+            Log.plan.info("계획 추가 '\(item.title, privacy: .public)' 좌표=\(draft.latitude != nil ? "있음" : "없음", privacy: .public)")
         } catch {
-            print("TimelineViewModel.add 실패: \(error)")
+            Log.plan.error("계획 추가 실패: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -54,15 +55,18 @@ final class TimelineViewModel: ObservableObject {
         item.longitude = draft.longitude
         try? planRepository.save()
         reload()
+        Log.plan.info("계획 편집 '\(item.title, privacy: .public)'")
     }
 
     func toggleDone(_ item: PlanItem) {
         item.isDone.toggle()
         try? planRepository.save()
         reload()
+        Log.plan.debug("계획 완료 토글 '\(item.title, privacy: .public)' → \(item.isDone, privacy: .public)")
     }
 
     func delete(_ item: PlanItem) {
+        Log.plan.info("계획 삭제 '\(item.title, privacy: .public)'")
         try? planRepository.delete(item)
         reload()
     }

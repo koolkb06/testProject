@@ -70,6 +70,7 @@ final class MapViewModel: ObservableObject {
         let planItems = (try? planRepository.items(for: trip)) ?? []
         let planDays = CalendarGrouping.byDay(planItems, calendar: calendar) { $0.plannedAt }.map(\.day)
         availableDays = Array(Set(trackDays + planDays)).sorted()
+        Log.map.debug("지도 reload: 여행='\(trip.name, privacy: .public)' 점=\(all.count, privacy: .public) 계획=\(planItems.count, privacy: .public) 날짜=\(self.availableDays.count, privacy: .public)")
         if selectedDay == nil || !(availableDays.contains(selectedDay!)) {
             isReloading = true          // selectedDay didSet의 중복 updateDay 방지
             selectedDay = availableDays.last
@@ -212,8 +213,10 @@ final class MapViewModel: ObservableObject {
             )
             try photoRepository.add(photo, to: trip)
             reloadPhotos(day: selectedDay ?? now)
+            Log.photo.info("사진 저장 \(paths.filePath, privacy: .public) at \(lat, privacy: .public),\(lon, privacy: .public)")
         } catch {
             captureError = "사진 저장에 실패했습니다: \(error.localizedDescription)"
+            Log.photo.error("사진 저장 실패: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -239,9 +242,12 @@ final class MapViewModel: ObservableObject {
             trackName: trip.name, segments: segments, waypoints: waypoints, format: format
         )
         do {
-            return try TripExporter.write(content, baseName: trip.name, format: format)
+            let url = try TripExporter.write(content, baseName: trip.name, format: format)
+            Log.export.info("내보내기 \(format.fileExtension, privacy: .public): 점=\(points.count, privacy: .public) seg=\(segments.count, privacy: .public) wpt=\(waypoints.count, privacy: .public) → \(url.lastPathComponent, privacy: .public)")
+            return url
         } catch {
             captureError = "내보내기 실패: \(error.localizedDescription)"
+            Log.export.error("내보내기 실패: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

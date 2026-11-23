@@ -39,19 +39,23 @@ final class CLLocationService: NSObject, LocationServing, CLLocationManagerDeleg
         // 앱이 백그라운드/종료 후에도 기록을 이어가기 위한 설정
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
+        Log.location.info("CLLocationService 초기화: desiredAccuracy=best distanceFilter=20 background=on")
     }
 
     func requestAuthorization() {
+        Log.location.info("위치 '항상 허용' 권한 요청")
         manager.requestAlwaysAuthorization()
     }
 
     func start() {
+        Log.location.info("위치 업데이트 시작 (standard + significant change)")
         manager.startUpdatingLocation()
         // 앱이 종료되어도 iOS가 다시 깨우도록
         manager.startMonitoringSignificantLocationChanges()
     }
 
     func stop() {
+        Log.location.info("위치 업데이트 정지")
         manager.stopUpdatingLocation()
         manager.stopMonitoringSignificantLocationChanges()
     }
@@ -60,16 +64,33 @@ final class CLLocationService: NSObject, LocationServing, CLLocationManagerDeleg
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         for location in locations {
-            onSample?(Self.sample(from: location))
+            let s = Self.sample(from: location)
+            Log.location.debug("""
+                수신 lat=\(s.latitude, privacy: .public) lon=\(s.longitude, privacy: .public) \
+                acc=\(s.horizontalAccuracy, format: .fixed(precision: 1), privacy: .public)m \
+                speed=\(s.speed, format: .fixed(precision: 1), privacy: .public) \
+                alt=\(s.altitude, format: .fixed(precision: 0), privacy: .public) \
+                ts=\(s.timestamp.timeIntervalSince1970, format: .fixed(precision: 0), privacy: .public)
+                """)
+            onSample?(s)
         }
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        Log.location.info("권한 변경: \(String(describing: manager.authorizationStatus.rawValue), privacy: .public) (accuracy=\(manager.accuracyAuthorization.rawValue, privacy: .public))")
         onAuthorizationChange?(manager.authorizationStatus)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        // 1단계에서는 무시(일시적 오류는 다음 업데이트로 복구). 추후 로깅.
+        Log.location.error("위치 오류: \(error.localizedDescription, privacy: .public)")
+    }
+
+    func locationManagerDidPauseLocationUpdates(_ manager: CLLocationManager) {
+        Log.location.notice("위치 업데이트 일시정지(정지 상태 감지, 배터리 절약)")
+    }
+
+    func locationManagerDidResumeLocationUpdates(_ manager: CLLocationManager) {
+        Log.location.notice("위치 업데이트 재개")
     }
 
     static func sample(from location: CLLocation) -> LocationSample {

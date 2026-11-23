@@ -22,8 +22,9 @@ final class TodoViewModel: ObservableObject {
         do {
             try repository.add(TodoItem(title: trimmed, createdAt: Date(), dueDate: dueDate))
             reload()
+            Log.todo.info("투두 추가 '\(trimmed, privacy: .public)' 마감=\(dueDate != nil ? "있음" : "없음", privacy: .public)")
         } catch {
-            print("TodoViewModel.add 실패: \(error)")
+            Log.todo.error("투두 추가 실패: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -40,9 +41,11 @@ final class TodoViewModel: ObservableObject {
         item.isDone.toggle()
         try? repository.save()
         reload()
+        Log.todo.debug("투두 토글 '\(item.title, privacy: .public)' → \(item.isDone, privacy: .public)")
     }
 
     func delete(_ item: TodoItem) {
+        Log.todo.info("투두 삭제 '\(item.title, privacy: .public)'")
         try? repository.delete(item)
         reload()
     }

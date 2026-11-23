@@ -48,12 +48,22 @@ final class TrackRecorder: ObservableObject {
 
     /// 기록 시작. 진행 중 여행이 있으면 이어가고, 없으면 집에서 시작하는 새 여행을 만든다.
     func start(tripName: String = "일본 여행", now: Date = Date()) {
-        guard !isRecording else { return }
+        guard !isRecording else {
+            Log.recording.notice("기록 시작 요청 무시: 이미 기록 중")
+            return
+        }
         do {
             if let active = try repository.activeTrip() {
                 trip = active
+                Log.recording.info("진행 중 여행 이어감: '\(active.name, privacy: .public)'")
             } else {
-                trip = try repository.startTrip(name: tripName, startDate: now, home: home)
+                let h = home
+                trip = try repository.startTrip(name: tripName, startDate: now, home: h)
+                Log.recording.info("""
+                    새 여행 시작: '\(tripName, privacy: .public)' \
+                    집=\(h.address, privacy: .public) \
+                    좌표=\(h.latitude ?? .nan, privacy: .public),\(h.longitude ?? .nan, privacy: .public)
+                    """)
             }
             if let trip {
                 let existing = try repository.points(for: trip)
@@ -71,9 +81,9 @@ final class TrackRecorder: ObservableObject {
             }
             locationService.start()
             isRecording = true
+            Log.recording.info("기록 시작 완료. 기존 점 수=\(self.pointCount, privacy: .public)")
         } catch {
-            // 1단계에서는 콘솔 로깅만. 추후 사용자 피드백.
-            print("TrackRecorder.start 실패: \(error)")
+            Log.recording.error("기록 시작 실패: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -82,20 +92,42 @@ final class TrackRecorder: ObservableObject {
         locationService.stop()
         isRecording = false
         if let trip {
-            try? repository.endTrip(trip, endDate: now)
+            do {
+                try repository.endTrip(trip, endDate: now)
+                Log.recording.info("기록 정지. 최종 점 수=\(self.pointCount, privacy: .public)")
+            } catch {
+                Log.recording.error("여행 종료 저장 실패: \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 
     private func handle(_ sample: LocationSample) {
         lastSample = sample
-        guard isRecording, let trip else { return }
-        guard filter.shouldAccept(sample, lastAccepted: lastAccepted) else { return }
+        guard isRecording, let trip else {
+            Log.recording.debug("샘플 무시(기록중 아님)")
+            return
+        }
+        let distance = lastAccepted.map { Geo.distance($0, sample) }
+        guard filter.shouldAccept(sample, lastAccepted: lastAccepted) else {
+            Log.recording.debug("""
+                점 버림 acc=\(sample.horizontalAccuracy, format: .fixed(precision: 1), privacy: .public)m \
+                이동=\(distance ?? -1, format: .fixed(precision: 1), privacy: .public)m \
+                (정확도>\(self.filter.maxAccuracy, privacy: .public) 또는 이동<\(self.filter.minDistance, privacy: .public))
+                """)
+            return
+        }
         do {
             try repository.append(sample, to: trip)
             lastAccepted = sample
             pointCount += 1
+            Log.recording.info("""
+                점 저장 #\(self.pointCount, privacy: .public) \
+                lat=\(sample.latitude, privacy: .public) lon=\(sample.longitude, privacy: .public) \
+                acc=\(sample.horizontalAccuracy, format: .fixed(precision: 1), privacy: .public)m \
+                이동=\(distance ?? 0, format: .fixed(precision: 1), privacy: .public)m
+                """)
         } catch {
-            print("TrackRecorder.append 실패: \(error)")
+            Log.recording.error("점 저장 실패: \(error.localizedDescription, privacy: .public)")
         }
     }
 }
