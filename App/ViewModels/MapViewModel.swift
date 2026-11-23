@@ -1,6 +1,7 @@
 import Foundation
 import CoreLocation
 import UIKit
+import MapKit
 
 /// 지도 화면 상태: 최신 여행 로드 → 날짜별 조회 → 경로 재생. (설계 §3)
 /// MapKit에 의존하지 않도록 좌표는 값으로 노출하고, 뷰에서 MapKit 타입으로 변환한다.
@@ -93,6 +94,7 @@ final class MapViewModel: ObservableObject {
         playbackProgress = 1
         reloadPhotos(day: day)
         reloadPlanItems(day: day)
+        loadDirections()
         reverseGeocodeHead()
     }
 
@@ -113,6 +115,28 @@ final class MapViewModel: ObservableObject {
     /// 계획 방문 경로. 각 일정 = 출발→도착 구간(출발 비면 이전 도착지에서 이어짐).
     var plannedRoute: PlannedRouteResult {
         PlannedRoute.build(dayPlanItems)
+    }
+
+    /// 구간별 실제 도로 경로 좌표(leg.order → 좌표열). MKDirections 비동기 결과. 없으면 직선 대체.
+    @Published private(set) var legGeometry: [Int: [RoutePlayback.Coord]] = [:]
+    private var directionsTask: Task<Void, Never>?
+
+    /// 계획 구간들의 실제 도로 경로를 비동기로 계산해 채운다.
+    private func loadDirections() {
+        directionsTask?.cancel()
+        legGeometry = [:]
+        let legs = plannedRoute.legs
+        guard !legs.isEmpty else { return }
+        directionsTask = Task { [weak self] in
+            for leg in legs {
+                if Task.isCancelled { return }
+                if let coords = await DirectionsService.route(from: leg.from, to: leg.to) {
+                    if Task.isCancelled { return }
+                    self?.legGeometry[leg.order] = coords
+                }
+            }
+            Log.map.debug("도로 경로 계산 완료: \(legs.count, privacy: .public)구간")
+        }
     }
 
     // MARK: - 좌표 (뷰에서 CLLocationCoordinate2D로 변환)

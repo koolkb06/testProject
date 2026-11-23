@@ -29,10 +29,15 @@ struct MapScreen: View {
                 Annotation("집", coordinate: start.cl) { startMarker }
             }
 
-            // 계획 방문 경로: 각 일정 = 출발→도착 주황 점선 구간 + 도착지 번호 핀
+            // 계획 방문 경로: 실제 도로 경로(있으면 실선) 또는 직선 점선 대체 + 도착지 번호 핀
             ForEach(vm.plannedRoute.legs, id: \.order) { leg in
-                MapPolyline(coordinates: [leg.from.cl, leg.to.cl])
-                    .stroke(.orange, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [2, 9]))
+                if let road = vm.legGeometry[leg.order], road.count > 1 {
+                    MapPolyline(coordinates: road.map(\.cl))
+                        .stroke(.orange, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+                } else {
+                    MapPolyline(coordinates: [leg.from.cl, leg.to.cl])
+                        .stroke(.orange, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [2, 9]))
+                }
             }
             ForEach(vm.plannedRoute.stops, id: \.order) { stop in
                 Annotation(stop.title, coordinate: stop.coord.cl) {
