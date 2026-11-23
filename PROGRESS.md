@@ -29,7 +29,28 @@
 - 집(탄천상로 6) 좌표 여전히 미확정 → 좌표 알면 흰 네모 시작 마커가 집에 고정됨(현재는 그날 첫 점)
 - 경로 재생 실데이터 검증은 3단계 이후 실기기/모의 이동으로
 
+## 3단계: 카메라 + 썸네일 annotation  ← 완료 (2026-11-23)
+
+### 완료
+- `ImageProcessing`(200px 썸네일, 순수), `PhotoService`(원본+썸네일 Documents 저장)
+- `PhotoRepository`(SwiftData), `CameraPicker`(UIImagePickerController, 시뮬레이터는 보관함 대체)
+- `MapScreen`에 촬영 버튼 + 둥근 썸네일 annotation + 탭 시 원본·시각 상세(`PhotoDetailView`)
+- `MapViewModel`에 사진 저장/로드/일자 필터 추가
+- 테스트: ImageProcessing/PhotoService/PhotoRepository 추가, UI 실행 확인(카메라 버튼)
+
+## 3.5단계: 타임라인(여행 계획) + 투두  ← 완료 (2026-11-23, 사용자 추가 요청)
+
+### 완료
+- 모델 `PlanItem`, `TodoItem` 추가 + ModelContainer 등록
+- 순수 로직 `CalendarGrouping`(범용 날짜 그룹핑), `TodoOrdering`(미완료 우선 정렬)
+- `PlanRepository`/`TodoRepository`(SwiftData), `TimelineViewModel`/`TodoViewModel`
+- `RootTabView`(지도/타임라인/투두 탭), `TimelineView`+`PlanItemEditView`, `TodoView`
+- 테스트 **51개 전부 통과**, 세 탭 모두 시뮬레이터 렌더링 확인
+
+### 미결
+- PlanItem 좌표를 지도에 계획 핀으로 표시(후속 아이디어)
+- 투두에 마감일 입력 UI(현재 모델엔 있으나 입력폼 미노출)
+
 ## 다음 단계 (미착수)
-- 3단계: 카메라 + 썸네일 annotation
 - 4단계: GPX/KML 내보내기
 - 5단계: 실기기 필드 테스트 (출국 2026-12-04 전)

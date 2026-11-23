@@ -6,12 +6,15 @@ struct TravelTrackerApp: App {
     let container: ModelContainer
     @StateObject private var recorder: TrackRecorder
     @StateObject private var mapViewModel: MapViewModel
+    @StateObject private var timelineViewModel: TimelineViewModel
+    @StateObject private var todoViewModel: TodoViewModel
 
     init() {
         let container: ModelContainer
         do {
             container = try ModelContainer(
-                for: Trip.self, TrackPoint.self, Photo.self, Profile.self
+                for: Trip.self, TrackPoint.self, Photo.self, Profile.self,
+                PlanItem.self, TodoItem.self
             )
         } catch {
             fatalError("ModelContainer 생성 실패: \(error)")
@@ -25,16 +28,33 @@ struct TravelTrackerApp: App {
                 repository: repository
             )
         )
+        let photoRepository = SwiftDataPhotoRepository(context: container.mainContext)
         _mapViewModel = StateObject(
-            wrappedValue: MapViewModel(repository: repository)
+            wrappedValue: MapViewModel(
+                repository: repository,
+                photoRepository: photoRepository
+            )
+        )
+        _timelineViewModel = StateObject(
+            wrappedValue: TimelineViewModel(
+                tripRepository: repository,
+                planRepository: SwiftDataPlanRepository(context: container.mainContext)
+            )
+        )
+        _todoViewModel = StateObject(
+            wrappedValue: TodoViewModel(
+                repository: SwiftDataTodoRepository(context: container.mainContext)
+            )
         )
     }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootTabView()
                 .environmentObject(recorder)
                 .environmentObject(mapViewModel)
+                .environmentObject(timelineViewModel)
+                .environmentObject(todoViewModel)
         }
         .modelContainer(container)
     }

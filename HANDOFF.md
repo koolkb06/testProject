@@ -4,7 +4,12 @@
 
 ## 목표
 
-일본 여행(출국 2026-12-04) 중 이동 경로를 자동 기록하고, 지도에서 경로·사진을 다시 보는 iPhone 앱.
+일본 여행(출국 2026-12-04)용 iPhone 앱. 세 가지를 한 앱에서:
+1. **기록** — 이동 경로 자동 기록, 지도에서 경로·사진 다시 보기
+2. **계획(타임라인)** — 날짜·시간별 여행 일정 작성/편집
+3. **투두** — 여행 준비 체크리스트
+
+화면은 **TabView(지도 / 타임라인 / 투두)**. 설정은 지도 좌상단 버튼으로 진입.
 
 ## 기술 스택
 
@@ -23,28 +28,45 @@ App/
  │   └ Geo.swift             Haversine 거리 (CoreLocation 비의존, 순수 함수)
  ├ Models/
  │   ├ LocationSample.swift  위치 1회 측정값 (순수 value type)
- │   ├ Trip.swift            @Model
+ │   ├ Trip.swift            @Model (집 시작점 필드 포함)
  │   ├ TrackPoint.swift      @Model
- │   ├ Photo.swift           @Model (2단계+ 사용, 스키마만 등록)
- │   └ Profile.swift         @Model (2단계+ 사용, 스키마만 등록)
+ │   ├ Photo.swift           @Model (촬영 사진)
+ │   ├ Profile.swift         @Model (프로필, 추후)
+ │   ├ PlanItem.swift        @Model (타임라인 일정)
+ │   ├ TodoItem.swift        @Model (투두) + TodoItem+Ordering.swift
  ├ Logic/
  │   ├ GeoTimed.swift          위경도+시각 공통 프로토콜(LocationSample/TrackPoint)
  │   ├ TrackPointFilter.swift  정확도/최소거리 필터 (순수)
  │   ├ SegmentSplitter.swift   시간 간격으로 segment 분리 (순수, 제네릭)
  │   ├ TripStats.swift         거리·시간 통계 (순수)
- │   ├ DayGrouping.swift       날짜별 그룹핑 (순수, calendar 주입)
+ │   ├ DayGrouping.swift       GeoTimed 날짜별 그룹핑 (순수)
+ │   ├ CalendarGrouping.swift  범용 날짜 그룹핑(클로저) — PlanItem용 (순수)
+ │   ├ TodoOrdering.swift      투두 정렬 규칙 (순수)
  │   ├ RoutePlayback.swift     재생 보간·부분 폴리라인 (순수)
  │   └ RegionCalculator.swift  지도 표시 영역 계산 (순수, MapKit 비의존)
  ├ Services/
- │   └ LocationService.swift   LocationServing 프로토콜 + CLLocationService(실제)
+ │   ├ LocationService.swift   LocationServing 프로토콜 + CLLocationService(실제)
+ │   ├ ImageProcessing.swift   200px 썸네일 생성 (순수)
+ │   └ PhotoService.swift      원본+썸네일 Documents 저장
  ├ Repositories/
- │   └ TrackRepository.swift   프로토콜 + SwiftDataTrackRepository
+ │   ├ TrackRepository.swift   프로토콜 + SwiftDataTrackRepository
+ │   ├ PhotoRepository.swift   프로토콜 + SwiftDataPhotoRepository
+ │   ├ PlanRepository.swift    프로토콜 + SwiftDataPlanRepository
+ │   └ TodoRepository.swift    프로토콜 + SwiftDataTodoRepository
  ├ ViewModels/
  │   ├ TrackRecorder.swift     샘플 수신→필터→저장 오케스트레이터
- │   └ MapViewModel.swift      여행 로드→날짜 조회→경로 재생
+ │   ├ MapViewModel.swift      여행 로드→날짜 조회→재생→사진
+ │   ├ TimelineViewModel.swift 계획 항목 CRUD, 날짜별 그룹핑
+ │   └ TodoViewModel.swift     투두 CRUD, 정렬
  └ Views/
-     ├ ContentView.swift       루트(지도) + 권한 요청 배너
-     ├ MapScreen.swift         다크 지도/경로/마커/날짜/재생/정보 pill
+     ├ RootTabView.swift       탭 루트(지도/타임라인/투두). START_TAB 환경변수로 초기 탭 지정(테스트용)
+     ├ ContentView.swift       지도 탭 루트 + 권한 요청 배너
+     ├ MapScreen.swift         다크 지도/경로/마커/날짜/재생/사진 썸네일/카메라
+     ├ CameraPicker.swift      UIImagePickerController 래퍼(시뮬레이터는 보관함 대체)
+     ├ PhotoDetailView.swift   원본 + 촬영 시각
+     ├ TimelineView.swift      계획 목록(날짜별) + 추가/편집/삭제/완료
+     ├ PlanItemEditView.swift  일정 추가·편집 폼
+     ├ TodoView.swift          투두 목록 + 입력바
      └ SettingsView.swift      프로필·설정 골격
 Tests/
  ├ GeoTests.swift
@@ -85,7 +107,11 @@ xcodebuild test -scheme TravelTracker \
 ## 진행 단계 (docs/DESIGN.md §8)
 
 1. ~~프로젝트 골격 + 위치 기록 + 저장 + 테스트~~ ✅
-2. ~~지도 경로 표시 + 날짜별 조회 + 경로 재생~~ ✅  ← 현재까지 완료
-3. 카메라 + 썸네일 annotation
+2. ~~지도 경로 표시 + 날짜별 조회 + 경로 재생~~ ✅
+3. ~~카메라 + 썸네일 annotation~~ ✅
+3.5. ~~타임라인(여행 계획) + 투두 (탭 구조)~~ ✅  ← 현재까지 완료 (사용자 추가 요청)
 4. GPX/KML 내보내기
 5. 실기기 필드 테스트
+
+빌드/테스트 명령은 위 "빌드 / 테스트 방법"과 동일.
+헤드리스 캡처: `SIMCTL_CHILD_START_TAB=timeline|todo xcrun simctl launch ...`

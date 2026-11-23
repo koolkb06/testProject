@@ -20,6 +20,7 @@ struct MapScreen: View {
     @EnvironmentObject private var recorder: TrackRecorder
 
     @State private var camera: MapCameraPosition = .automatic
+    @State private var showCamera = false
 
     var body: some View {
         Map(position: $camera) {
@@ -30,6 +31,15 @@ struct MapScreen: View {
             if vm.drawnCoordinates.count > 1 {
                 MapPolyline(coordinates: vm.drawnCoordinates.map(\.cl))
                     .stroke(.blue, style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
+            }
+
+            ForEach(vm.dayPhotos) { photo in
+                Annotation("", coordinate: CLLocationCoordinate2D(
+                    latitude: photo.latitude, longitude: photo.longitude)
+                ) {
+                    PhotoThumbnailMarker(image: vm.image(atRelativePath: photo.thumbPath))
+                        .onTapGesture { vm.selectedPhoto = photo }
+                }
             }
 
             if let head = vm.headCoordinate {
@@ -62,6 +72,27 @@ struct MapScreen: View {
         }
         .onChange(of: vm.isPlaying) { _, playing in
             if !playing { fitFullRoute() }   // 재생 끝나면 전체 경로로 줌아웃
+        }
+        .sheet(isPresented: $showCamera) {
+            CameraPicker { image in
+                vm.capturePhoto(
+                    image: image,
+                    latitude: recorder.lastSample?.latitude,
+                    longitude: recorder.lastSample?.longitude
+                )
+            }
+            .ignoresSafeArea()
+        }
+        .sheet(item: $vm.selectedPhoto) { photo in
+            PhotoDetailView(photo: photo, image: vm.image(atRelativePath: photo.filePath))
+        }
+        .alert("사진", isPresented: Binding(
+            get: { vm.captureError != nil },
+            set: { if !$0 { vm.captureError = nil } }
+        )) {
+            Button("확인", role: .cancel) { vm.captureError = nil }
+        } message: {
+            Text(vm.captureError ?? "")
         }
     }
 
@@ -132,6 +163,14 @@ struct MapScreen: View {
                 .disabled(vm.dayPoints.count < 2)
 
                 Button {
+                    showCamera = true
+                } label: {
+                    Image(systemName: "camera.fill")
+                        .padding(12)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+
+                Button {
                     recorder.isRecording ? recorder.stop() : recorder.start()
                 } label: {
                     Label(recorder.isRecording ? "기록 정지" : "기록 시작",
@@ -189,5 +228,27 @@ struct MapScreen: View {
         let total = Int(seconds)
         let h = total / 3600, m = (total % 3600) / 60
         return h > 0 ? "\(h)시간 \(m)분" : "\(m)분"
+    }
+}
+
+/// 지도 위 둥근 모서리 썸네일 마커. (설계 §3)
+struct PhotoThumbnailMarker: View {
+    let image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: "photo")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(width: 44, height: 44)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(.white, lineWidth: 2))
+        .shadow(radius: 3)
     }
 }

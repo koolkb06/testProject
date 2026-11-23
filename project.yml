@@ -24,6 +24,8 @@ targets:
         UIApplicationSupportsIndirectInputEvents: true
         NSLocationWhenInUseUsageDescription: "여행 경로를 지도에 기록하려면 위치 접근이 필요합니다."
         NSLocationAlwaysAndWhenInUseUsageDescription: "앱이 꺼져 있어도 여행 경로를 계속 기록하려면 '항상 허용' 위치 접근이 필요합니다."
+        NSCameraUsageDescription: "여행 중 사진을 촬영해 경로 위에 기록하려면 카메라 접근이 필요합니다."
+        NSPhotoLibraryUsageDescription: "여행 사진을 경로 위에 기록하려면 사진 보관함 접근이 필요합니다."
         UIBackgroundModes:
           - location
     settings:

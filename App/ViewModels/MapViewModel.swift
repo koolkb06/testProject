@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import UIKit
 
 /// 지도 화면 상태: 최신 여행 로드 → 날짜별 조회 → 경로 재생. (설계 §3)
 /// MapKit에 의존하지 않도록 좌표는 값으로 노출하고, 뷰에서 MapKit 타입으로 변환한다.
@@ -12,6 +13,7 @@ final class MapViewModel: ObservableObject {
     }
     private var isReloading = false
     @Published private(set) var dayPoints: [TrackPoint] = []
+    @Published private(set) var dayPhotos: [Photo] = []
     @Published private(set) var stats: TripStats = .zero
 
     /// 재생 진행도 0...1. 로드/정지 상태에서는 1(전체 경로 표시).
@@ -20,7 +22,14 @@ final class MapViewModel: ObservableObject {
 
     @Published private(set) var regionName: String?
 
+    /// 썸네일 탭 시 원본을 보여주기 위한 선택 사진.
+    @Published var selectedPhoto: Photo?
+    /// 사진 저장 실패 안내.
+    @Published var captureError: String?
+
     private let repository: TrackRepository
+    private let photoRepository: PhotoRepository
+    private let photoService: PhotoService
     private let calendar: Calendar
     private let geocoder = CLGeocoder()
 
@@ -28,8 +37,15 @@ final class MapViewModel: ObservableObject {
     private let playbackDuration: TimeInterval = 8
     private var timer: Timer?
 
-    init(repository: TrackRepository, calendar: Calendar = .current) {
+    init(
+        repository: TrackRepository,
+        photoRepository: PhotoRepository,
+        photoService: PhotoService = PhotoService(),
+        calendar: Calendar = .current
+    ) {
         self.repository = repository
+        self.photoRepository = photoRepository
+        self.photoService = photoService
         self.calendar = calendar
     }
 
@@ -66,7 +82,14 @@ final class MapViewModel: ObservableObject {
             .first { calendar.isDate($0.day, inSameDayAs: day) }?.points ?? []
         stats = StatsCalculator.stats(dayPoints)
         playbackProgress = 1
+        reloadPhotos(day: day)
         reverseGeocodeHead()
+    }
+
+    private func reloadPhotos(day: Date) {
+        guard let trip else { dayPhotos = []; return }
+        let all = (try? photoRepository.photos(for: trip)) ?? []
+        dayPhotos = all.filter { calendar.isDate($0.takenAt, inSameDayAs: day) }
     }
 
     // MARK: - 좌표 (뷰에서 CLLocationCoordinate2D로 변환)
@@ -129,6 +152,39 @@ final class MapViewModel: ObservableObject {
             pausePlayback()
             reverseGeocodeHead()
         }
+    }
+
+    // MARK: - 사진
+
+    /// 촬영한 이미지를 현재 위치와 함께 저장한다. (설계 §4)
+    /// 좌표는 촬영 시점 최신 위치(호출부가 전달); 없으면 마지막 점/시작점으로 대체.
+    func capturePhoto(image: UIImage, latitude: Double?, longitude: Double?, now: Date = Date()) {
+        guard let trip else {
+            captureError = "먼저 여행 기록을 시작해 주세요."
+            return
+        }
+        let lat = latitude ?? dayPoints.last?.latitude ?? startCoordinate?.latitude
+        let lon = longitude ?? dayPoints.last?.longitude ?? startCoordinate?.longitude
+        guard let lat, let lon else {
+            captureError = "위치를 확인할 수 없어 사진을 기록하지 못했습니다."
+            return
+        }
+        do {
+            let paths = try photoService.store(image: image)
+            let photo = Photo(
+                filePath: paths.filePath, thumbPath: paths.thumbPath,
+                latitude: lat, longitude: lon, takenAt: now
+            )
+            try photoRepository.add(photo, to: trip)
+            reloadPhotos(day: selectedDay ?? now)
+        } catch {
+            captureError = "사진 저장에 실패했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    /// 상대 경로의 이미지를 디스크에서 로드.
+    func image(atRelativePath path: String) -> UIImage? {
+        UIImage(contentsOfFile: PhotoStorage.absolute(path).path)
     }
 
     // MARK: - 현재 지역명 (best-effort)
