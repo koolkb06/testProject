@@ -51,6 +51,18 @@
 - PlanItem 좌표를 지도에 계획 핀으로 표시(후속 아이디어)
 - 투두에 마감일 입력 UI(현재 모델엔 있으나 입력폼 미노출)
 
+## 4단계: GPX/KML 내보내기  ← 완료 (2026-11-24)
+
+### 완료
+- 집(탄천상로 6) 좌표 **37.332388, 127.112209** 확정(Apple 지오코딩) → 시작 마커가 집에 고정
+- `TripExporter`(순수 GPX/KML 생성 + 임시파일 쓰기), `ExportFormat`, `Waypoint`
+- `MapViewModel.exportURL(format:)`: 여행 전체 경로를 segment로 끊어 생성 + 사진을 waypoint로
+- 지도 우상단 **공유 버튼** → GPX/KML 메뉴 → `ShareSheet`(UIActivityViewController)
+- 테스트 **59개 전부 통과**(GPX/KML 구조·좌표순서·XML이스케이프·파일쓰기 + VM 내보내기 E2E)
+
 ## 다음 단계 (미착수)
+- (후속 요청) **계획 방문 경로 그리기**: 타임라인에서 좌표가 있는 일정들을 가는 순서대로
+  지도에 "계획 경로"(실제 기록과 다른 스타일, 예: 주황 점선)로 표시. 직선 연결 또는 MKDirections.
+  → PlanItem에 위치 선택 UI 추가 필요. 미착수.
 - 4단계: GPX/KML 내보내기
 - 5단계: 실기기 필드 테스트 (출국 2026-12-04 전)

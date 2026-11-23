@@ -21,6 +21,7 @@ struct MapScreen: View {
 
     @State private var camera: MapCameraPosition = .automatic
     @State private var showCamera = false
+    @State private var exportFile: ExportFile?
 
     var body: some View {
         Map(position: $camera) {
@@ -86,6 +87,9 @@ struct MapScreen: View {
         .sheet(item: $vm.selectedPhoto) { photo in
             PhotoDetailView(photo: photo, image: vm.image(atRelativePath: photo.filePath))
         }
+        .sheet(item: $exportFile) { file in
+            ShareSheet(items: [file.url])
+        }
         .alert("사진", isPresented: Binding(
             get: { vm.captureError != nil },
             set: { if !$0 { vm.captureError = nil } }
@@ -127,8 +131,27 @@ struct MapScreen: View {
             }
             Spacer()
             if !vm.availableDays.isEmpty { dayMenu }
+            exportMenu
         }
         .padding()
+    }
+
+    private var exportMenu: some View {
+        Menu {
+            Button { export(.gpx) } label: { Label("GPX 내보내기", systemImage: "point.topleft.down.curvedto.point.bottomright.up") }
+            Button { export(.kml) } label: { Label("KML 내보내기", systemImage: "globe") }
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+                .font(.title3)
+                .padding(10)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+    }
+
+    private func export(_ format: ExportFormat) {
+        if let url = vm.exportURL(format: format) {
+            exportFile = ExportFile(url: url)
+        }
     }
 
     private var dayMenu: some View {

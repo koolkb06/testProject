@@ -187,6 +187,30 @@ final class MapViewModel: ObservableObject {
         UIImage(contentsOfFile: PhotoStorage.absolute(path).path)
     }
 
+    // MARK: - 내보내기 (GPX/KML)
+
+    /// 현재 여행 전체 경로 + 사진을 파일로 내보내 공유용 URL 반환. (설계 §5)
+    func exportURL(format: ExportFormat) -> URL? {
+        guard let trip else { captureError = "내보낼 여행이 없습니다."; return nil }
+        let points = (try? repository.points(for: trip)) ?? []
+        guard !points.isEmpty else { captureError = "내보낼 경로 점이 없습니다."; return nil }
+
+        let segments = SegmentSplitter().split(points, timestamp: { $0.timestamp })
+        let photos = (try? photoRepository.photos(for: trip)) ?? []
+        let waypoints = photos.map {
+            Waypoint(name: "사진", latitude: $0.latitude, longitude: $0.longitude, time: $0.takenAt)
+        }
+        let content = TripExporter.content(
+            trackName: trip.name, segments: segments, waypoints: waypoints, format: format
+        )
+        do {
+            return try TripExporter.write(content, baseName: trip.name, format: format)
+        } catch {
+            captureError = "내보내기 실패: \(error.localizedDescription)"
+            return nil
+        }
+    }
+
     // MARK: - 현재 지역명 (best-effort)
 
     private func reverseGeocodeHead() {

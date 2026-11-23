@@ -48,7 +48,9 @@ final class TrackRepositoryTests: XCTestCase {
     }
 
     func testAppendAndFetchOrdered() throws {
-        let trip = try repo.startTrip(name: "일본 여행", startDate: base, home: .default)
+        // 집 좌표 seed의 영향을 배제하기 위해 좌표 없는 home 사용(append 동작만 검증).
+        let noCoordHome = HomeLocation(address: "탄천상로 6", latitude: nil, longitude: nil)
+        let trip = try repo.startTrip(name: "일본 여행", startDate: base, home: noCoordHome)
         try repo.append(LocationSample(latitude: 37.0, longitude: 127.0,
                                        horizontalAccuracy: 5, timestamp: base.addingTimeInterval(20)),
                         to: trip)

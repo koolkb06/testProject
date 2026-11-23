@@ -43,7 +43,8 @@ App/
  │   ├ CalendarGrouping.swift  범용 날짜 그룹핑(클로저) — PlanItem용 (순수)
  │   ├ TodoOrdering.swift      투두 정렬 규칙 (순수)
  │   ├ RoutePlayback.swift     재생 보간·부분 폴리라인 (순수)
- │   └ RegionCalculator.swift  지도 표시 영역 계산 (순수, MapKit 비의존)
+ │   ├ RegionCalculator.swift  지도 표시 영역 계산 (순수, MapKit 비의존)
+ │   └ TripExporter.swift      GPX/KML 생성 + 임시파일 쓰기 (순수)
  ├ Services/
  │   ├ LocationService.swift   LocationServing 프로토콜 + CLLocationService(실제)
  │   ├ ImageProcessing.swift   200px 썸네일 생성 (순수)
@@ -67,6 +68,7 @@ App/
      ├ TimelineView.swift      계획 목록(날짜별) + 추가/편집/삭제/완료
      ├ PlanItemEditView.swift  일정 추가·편집 폼
      ├ TodoView.swift          투두 목록 + 입력바
+     ├ ShareSheet.swift        UIActivityViewController 래퍼(파일 공유)
      └ SettingsView.swift      프로필·설정 골격
 Tests/
  ├ GeoTests.swift
@@ -109,9 +111,12 @@ xcodebuild test -scheme TravelTracker \
 1. ~~프로젝트 골격 + 위치 기록 + 저장 + 테스트~~ ✅
 2. ~~지도 경로 표시 + 날짜별 조회 + 경로 재생~~ ✅
 3. ~~카메라 + 썸네일 annotation~~ ✅
-3.5. ~~타임라인(여행 계획) + 투두 (탭 구조)~~ ✅  ← 현재까지 완료 (사용자 추가 요청)
-4. GPX/KML 내보내기
-5. 실기기 필드 테스트
+3.5. ~~타임라인(여행 계획) + 투두 (탭 구조)~~ ✅  (사용자 추가 요청)
+4. ~~GPX/KML 내보내기~~ ✅  ← 현재까지 완료. 집 좌표 확정(37.332388, 127.112209)
+5. 실기기 필드 테스트 (출국 2026-12-04 전)
+
+후속 후보: 계획 방문 경로 그리기(타임라인 좌표 → 지도에 계획 경로), 투두 마감일 입력 UI,
+설정에서 집 위치 지도 핀으로 수정
 
 빌드/테스트 명령은 위 "빌드 / 테스트 방법"과 동일.
 헤드리스 캡처: `SIMCTL_CHILD_START_TAB=timeline|todo xcrun simctl launch ...`
