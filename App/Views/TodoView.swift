@@ -77,19 +77,36 @@ struct TodoView: View {
     }
 
     private var inputBar: some View {
-        HStack {
-            TextField("할 일 추가", text: $newTitle)
-                .textFieldStyle(.roundedBorder)
-                .focused($inputFocused)
-                .submitLabel(.done)
-                .onSubmit(addTodo)
-            Button(action: addTodo) {
-                Image(systemName: "plus.circle.fill").font(.title2)
+        HStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle")
+                    .foregroundStyle(.secondary)
+                TextField("할 일 추가", text: $newTitle)
+                    .textFieldStyle(.plain)
+                    .focused($inputFocused)
+                    .submitLabel(.done)
+                    .onSubmit(addTodo)
             }
-            .disabled(newTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+            .padding(.vertical, 11)
+            .padding(.horizontal, 16)
+            .background(Capsule().fill(Color(.secondarySystemBackground)))
+
+            Button(action: addTodo) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 32))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(canAdd ? Color.accentColor : Color.secondary)
+            }
+            .disabled(!canAdd)
+            .animation(.easeInOut(duration: 0.15), value: canAdd)
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .background(.bar)
+    }
+
+    private var canAdd: Bool {
+        !newTitle.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private func addTodo() {
