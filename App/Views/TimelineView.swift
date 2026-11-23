@@ -61,8 +61,8 @@ struct TimelineView: View {
                     .foregroundStyle(item.isDone ? .secondary : .primary)
                 HStack(spacing: 8) {
                     Text(Self.timeFormatter.string(from: item.plannedAt))
-                    if let place = item.placeName, !place.isEmpty {
-                        Label(place, systemImage: "mappin.and.ellipse")
+                    if let route = routeText(item) {
+                        Label(route, systemImage: "arrow.triangle.turn.up.right.diamond")
                     }
                 }
                 .font(.caption)
@@ -79,6 +79,20 @@ struct TimelineView: View {
             Button(role: .destructive) { vm.delete(item) } label: {
                 Label("삭제", systemImage: "trash")
             }
+        }
+    }
+
+    /// "출발 → 도착" 표시. 출발 비면 "→ 도착"(이전 도착지에서 이어짐).
+    private func routeText(_ item: PlanItem) -> String? {
+        let from = item.fromPlaceName?.isEmpty == false ? item.fromPlaceName
+            : (item.fromLatitude != nil ? "지정 위치" : nil)
+        let to = item.toPlaceName?.isEmpty == false ? item.toPlaceName
+            : (item.toLatitude != nil ? "지정 위치" : nil)
+        switch (from, to) {
+        case let (f?, t?): return "\(f) → \(t)"
+        case (nil, let t?): return "→ \(t)"
+        case (let f?, nil): return "\(f) →"
+        case (nil, nil): return nil
         }
     }
 

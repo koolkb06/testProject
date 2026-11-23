@@ -27,16 +27,16 @@ enum SampleData {
                                       timestamp: day.addingTimeInterval(Double(i) * 300), trip: trip))
         }
 
-        // 계획 방문 경로(주황 점선): 세 곳
-        let plans: [(String, Double, Double, Int)] = [
-            ("센소지", 35.7148, 139.7967, 2),
-            ("도쿄 스카이트리", 35.7101, 139.8107, 4),
-            ("우에노 공원", 35.7156, 139.7730, 6),
-        ]
-        for (title, lat, lon, hourOffset) in plans {
-            context.insert(PlanItem(title: title, plannedAt: day.addingTimeInterval(Double(hourOffset) * 3600),
-                                    placeName: title, latitude: lat, longitude: lon, trip: trip))
-        }
+        // 계획 이동 구간(주황 점선): 출발→도착. 둘째·셋째는 출발 비워 자동 체이닝.
+        // 호텔 → 센소지 → 스카이트리 → 우에노
+        let hotel = (35.6938, 139.7036)
+        context.insert(PlanItem(title: "센소지 방문", plannedAt: day.addingTimeInterval(2 * 3600),
+                                fromPlaceName: "호텔", fromLatitude: hotel.0, fromLongitude: hotel.1,
+                                toPlaceName: "센소지", toLatitude: 35.7148, toLongitude: 139.7967, trip: trip))
+        context.insert(PlanItem(title: "스카이트리 이동", plannedAt: day.addingTimeInterval(4 * 3600),
+                                toPlaceName: "도쿄 스카이트리", toLatitude: 35.7101, toLongitude: 139.8107, trip: trip))
+        context.insert(PlanItem(title: "우에노 공원", plannedAt: day.addingTimeInterval(6 * 3600),
+                                toPlaceName: "우에노 공원", toLatitude: 35.7156, toLongitude: 139.7730, trip: trip))
 
         // 투두
         context.insert(TodoItem(title: "여권 챙기기", isDone: true, createdAt: day))

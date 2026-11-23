@@ -110,14 +110,9 @@ final class MapViewModel: ObservableObject {
             .sorted { $0.plannedAt < $1.plannedAt }
     }
 
-    /// 계획 방문 경로(좌표 있는 일정을 시간순 연결). 실제 기록 경로와 구분되는 "가야 할 길".
-    var plannedRouteCoordinates: [RoutePlayback.Coord] {
-        PlannedRoute.coordinates(dayPlanItems)
-    }
-
-    /// 좌표가 있는 계획 지점(지도에 번호 핀 표시용, 시간순).
-    var plannedStops: [PlanItem] {
-        dayPlanItems.filter { $0.latitude != nil && $0.longitude != nil }
+    /// 계획 방문 경로. 각 일정 = 출발→도착 구간(출발 비면 이전 도착지에서 이어짐).
+    var plannedRoute: PlannedRouteResult {
+        PlannedRoute.build(dayPlanItems)
     }
 
     // MARK: - 좌표 (뷰에서 CLLocationCoordinate2D로 변환)
@@ -146,9 +141,11 @@ final class MapViewModel: ObservableObject {
             LocationSample(latitude: $0.latitude, longitude: $0.longitude,
                            horizontalAccuracy: 0, timestamp: $0.timestamp)
         }
-        samples += plannedStops.map {
-            LocationSample(latitude: $0.latitude!, longitude: $0.longitude!,
-                           horizontalAccuracy: 0, timestamp: $0.plannedAt)
+        let route = plannedRoute
+        let coords = route.stops.map(\.coord) + route.legs.map(\.from)
+        samples += coords.map {
+            LocationSample(latitude: $0.latitude, longitude: $0.longitude,
+                           horizontalAccuracy: 0, timestamp: Date(timeIntervalSince1970: 0))
         }
         return RegionCalculator.bounding(samples)
     }

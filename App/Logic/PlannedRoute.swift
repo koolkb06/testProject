@@ -1,19 +1,64 @@
 import Foundation
 
-/// 좌표를 가진 계획 지점. PlanItem이 따른다.
-protocol PlannedStop {
-    var latitude: Double? { get }
-    var longitude: Double? { get }
+/// 출발·도착 좌표를 가진 계획 구간의 소스. PlanItem이 따른다.
+protocol PlannedLegSource {
+    var fromLatitude: Double? { get }
+    var fromLongitude: Double? { get }
+    var toLatitude: Double? { get }
+    var toLongitude: Double? { get }
     var plannedAt: Date { get }
+    var title: String { get }
+    var isDone: Bool { get }
 }
 
-/// 계획 방문 경로: 좌표가 있는 일정을 시간 순서로 연결한 좌표열. (사용자 요청)
-/// 실제 기록 경로(RoutePlayback)와 구분되는 "가야 할 길".
+/// 그려질 이동 구간(출발→도착).
+struct PlannedLeg: Equatable {
+    let from: RoutePlayback.Coord
+    let to: RoutePlayback.Coord
+    let order: Int
+}
+
+/// 도착 지점 마커.
+struct PlannedStop: Equatable {
+    let coord: RoutePlayback.Coord
+    let order: Int
+    let title: String
+    let isDone: Bool
+}
+
+struct PlannedRouteResult: Equatable {
+    let legs: [PlannedLeg]
+    let stops: [PlannedStop]
+}
+
+/// 계획 방문 경로 구성. (사용자 요청)
+/// - 시간순 정렬.
+/// - 도착지 좌표가 있는 항목만 "정류장"으로 번호를 받는다.
+/// - 각 항목의 출발지는 명시값, 없으면 이전 정류장의 도착지(자동 체이닝).
+/// - 출발지가 정해진 경우에만 from→to 선(leg)을 만든다.
 enum PlannedRoute {
-    static func coordinates<T: PlannedStop>(_ stops: [T]) -> [RoutePlayback.Coord] {
-        stops
-            .filter { $0.latitude != nil && $0.longitude != nil }
-            .sorted { $0.plannedAt < $1.plannedAt }
-            .map { RoutePlayback.Coord(latitude: $0.latitude!, longitude: $0.longitude!) }
+    static func build<T: PlannedLegSource>(_ items: [T]) -> PlannedRouteResult {
+        let sorted = items.sorted { $0.plannedAt < $1.plannedAt }
+        var legs: [PlannedLeg] = []
+        var stops: [PlannedStop] = []
+        var prevTo: RoutePlayback.Coord?
+        var order = 0
+
+        for item in sorted {
+            guard let to = coord(item.toLatitude, item.toLongitude) else { continue }
+            order += 1
+            stops.append(PlannedStop(coord: to, order: order, title: item.title, isDone: item.isDone))
+            let from = coord(item.fromLatitude, item.fromLongitude) ?? prevTo
+            if let from {
+                legs.append(PlannedLeg(from: from, to: to, order: order))
+            }
+            prevTo = to
+        }
+        return PlannedRouteResult(legs: legs, stops: stops)
+    }
+
+    private static func coord(_ lat: Double?, _ lon: Double?) -> RoutePlayback.Coord? {
+        guard let lat, let lon else { return nil }
+        return RoutePlayback.Coord(latitude: lat, longitude: lon)
     }
 }

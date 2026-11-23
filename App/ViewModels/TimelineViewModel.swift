@@ -33,14 +33,15 @@ final class TimelineViewModel: ObservableObject {
         do {
             let trip = try ensureTrip()
             let item = PlanItem(
-                title: draft.title, plannedAt: draft.plannedAt,
-                placeName: draft.placeName,
-                latitude: draft.latitude, longitude: draft.longitude,
-                memo: draft.memo
+                title: draft.title, plannedAt: draft.plannedAt, memo: draft.memo,
+                fromPlaceName: draft.fromPlaceName,
+                fromLatitude: draft.fromLatitude, fromLongitude: draft.fromLongitude,
+                toPlaceName: draft.toPlaceName,
+                toLatitude: draft.toLatitude, toLongitude: draft.toLongitude
             )
             try planRepository.add(item, to: trip)
             reload()
-            Log.plan.info("계획 추가 '\(item.title, privacy: .public)' 좌표=\(draft.latitude != nil ? "있음" : "없음", privacy: .public)")
+            Log.plan.info("계획 추가 '\(item.title, privacy: .public)' 출발=\(draft.fromLatitude != nil ? "지정" : "자동", privacy: .public) 도착=\(draft.toLatitude != nil ? "있음" : "없음", privacy: .public)")
         } catch {
             Log.plan.error("계획 추가 실패: \(error.localizedDescription, privacy: .public)")
         }
@@ -49,10 +50,13 @@ final class TimelineViewModel: ObservableObject {
     func update(_ item: PlanItem, draft: PlanDraft) {
         item.title = draft.title
         item.plannedAt = draft.plannedAt
-        item.placeName = draft.placeName
         item.memo = draft.memo
-        item.latitude = draft.latitude
-        item.longitude = draft.longitude
+        item.fromPlaceName = draft.fromPlaceName
+        item.fromLatitude = draft.fromLatitude
+        item.fromLongitude = draft.fromLongitude
+        item.toPlaceName = draft.toPlaceName
+        item.toLatitude = draft.toLatitude
+        item.toLongitude = draft.toLongitude
         try? planRepository.save()
         reload()
         Log.plan.info("계획 편집 '\(item.title, privacy: .public)'")

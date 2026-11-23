@@ -1,3 +1,3 @@
 import Foundation
 
-extension PlanItem: PlannedStop {}
+extension PlanItem: PlannedLegSource {}

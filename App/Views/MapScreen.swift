@@ -29,16 +29,14 @@ struct MapScreen: View {
                 Annotation("집", coordinate: start.cl) { startMarker }
             }
 
-            // 계획 방문 경로(주황 점선) + 번호 핀 — 실제 기록과 구분
-            if vm.plannedRouteCoordinates.count > 1 {
-                MapPolyline(coordinates: vm.plannedRouteCoordinates.map(\.cl))
+            // 계획 방문 경로: 각 일정 = 출발→도착 주황 점선 구간 + 도착지 번호 핀
+            ForEach(vm.plannedRoute.legs, id: \.order) { leg in
+                MapPolyline(coordinates: [leg.from.cl, leg.to.cl])
                     .stroke(.orange, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [2, 9]))
             }
-            ForEach(Array(vm.plannedStops.enumerated()), id: \.element.id) { idx, stop in
-                Annotation(stop.title, coordinate: CLLocationCoordinate2D(
-                    latitude: stop.latitude ?? 0, longitude: stop.longitude ?? 0)
-                ) {
-                    PlanStopMarker(number: idx + 1, done: stop.isDone)
+            ForEach(vm.plannedRoute.stops, id: \.order) { stop in
+                Annotation(stop.title, coordinate: stop.coord.cl) {
+                    PlanStopMarker(number: stop.order, done: stop.isDone)
                 }
             }
 

@@ -6,6 +6,7 @@ struct TodoView: View {
     @State private var newTitle = ""
     @State private var editingItem: TodoItem?
     @State private var showingNew = false
+    @FocusState private var inputFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -23,6 +24,7 @@ struct TodoView: View {
                             row(item)
                         }
                     }
+                    .scrollDismissesKeyboard(.immediately)
                 }
                 inputBar
             }
@@ -30,6 +32,10 @@ struct TodoView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingNew = true } label: { Image(systemName: "calendar.badge.plus") }
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("완료") { inputFocused = false }
                 }
             }
             .sheet(isPresented: $showingNew) {
@@ -74,6 +80,8 @@ struct TodoView: View {
         HStack {
             TextField("할 일 추가", text: $newTitle)
                 .textFieldStyle(.roundedBorder)
+                .focused($inputFocused)
+                .submitLabel(.done)
                 .onSubmit(addTodo)
             Button(action: addTodo) {
                 Image(systemName: "plus.circle.fill").font(.title2)

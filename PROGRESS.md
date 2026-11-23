@@ -60,9 +60,28 @@
 - 지도 우상단 **공유 버튼** → GPX/KML 메뉴 → `ShareSheet`(UIActivityViewController)
 - 테스트 **59개 전부 통과**(GPX/KML 구조·좌표순서·XML이스케이프·파일쓰기 + VM 내보내기 E2E)
 
+## 5단계(디테일/후속): 계획 경로 + 투두 마감 + 집 교정 + 아이콘 + 로깅  ← 완료 (2026-11-24)
+
+### 완료
+- **계획 방문 경로**: PlanItem 위치 선택(`LocationPickerView`), 지도에 주황 점선 + 번호 핀(`PlanStopMarker`)
+  으로 표시(기록 파란 실선과 구분). `PlannedRoute` 순수 로직 + VM 통합 테스트
+- **투두 마감일** 입력/편집(`TodoEditView`), 전역 정렬 유지
+- **집 위치 교정**: 설정에서 지도 핀으로 지정(`HomeStore` UserDefaults), `HomeLocation.current`
+- **앱 아이콘**: 비행기+카메라 라인아트 1024 (`Assets.xcassets/AppIcon`)
+- **세밀 로깅**(`os.Logger`): 위치 수신/수락/버림(사유·거리·정확도), 기록 시작·정지, 저장, 내보내기,
+  계획/투두 CRUD. subsystem="com.example.TravelTracker"
+- 개발용 샘플 시드(`SEED_SAMPLE=1`), 테스트 **62개 통과**, 세 탭·계획경로 시뮬레이터 확인
+
+### 진행 중
+- **실기기 설치** (KoolKBz / iPhone 17 Pro Max, UDID 00008150-..., Team W99T9Y6797, 자동 서명)
+
 ## 다음 단계 (미착수)
-- (후속 요청) **계획 방문 경로 그리기**: 타임라인에서 좌표가 있는 일정들을 가는 순서대로
-  지도에 "계획 경로"(실제 기록과 다른 스타일, 예: 주황 점선)로 표시. 직선 연결 또는 MKDirections.
-  → PlanItem에 위치 선택 UI 추가 필요. 미착수.
+- 실기기 필드 테스트(실제 이동하며 로그 확인) → 출국 2026-12-04 전
+- 계획 경로를 직선 대신 MKDirections 실제 길로(후속 옵션)
+
+## 실기기 로그 보는 법
+- 실시간: `log stream --predicate 'subsystem == "com.example.TravelTracker"' --level debug`
+  (맥에 기기 연결 시 Console.app에서 기기 선택 후 subsystem 필터)
+- 카테고리: location, recording, repository, photo, export, plan, todo, map, app
 - 4단계: GPX/KML 내보내기
 - 5단계: 실기기 필드 테스트 (출국 2026-12-04 전)
