@@ -9,6 +9,7 @@ protocol PlannedLegSource {
     var plannedAt: Date { get }
     var title: String { get }
     var isDone: Bool { get }
+    var transport: LegTransport { get }
 }
 
 /// 그려질 이동 구간(출발→도착).
@@ -16,6 +17,7 @@ struct PlannedLeg: Equatable {
     let from: RoutePlayback.Coord
     let to: RoutePlayback.Coord
     let order: Int
+    let transport: LegTransport
 }
 
 /// 도착 지점 마커.
@@ -50,7 +52,7 @@ enum PlannedRoute {
             stops.append(PlannedStop(coord: to, order: order, title: item.title, isDone: item.isDone))
             let from = coord(item.fromLatitude, item.fromLongitude) ?? prevTo
             if let from {
-                legs.append(PlannedLeg(from: from, to: to, order: order))
+                legs.append(PlannedLeg(from: from, to: to, order: order, transport: item.transport))
             }
             prevTo = to
         }

@@ -22,6 +22,11 @@ final class MapViewModel: ObservableObject {
     @Published private(set) var playbackProgress: Double = 1
     @Published private(set) var isPlaying = false
 
+    /// 계획 경로 재생(네비게이션처럼 경로 따라 이동). 0...1.
+    @Published private(set) var plannedProgress: Double = 0
+    @Published private(set) var isPlayingPlanned = false
+    private var plannedTimer: Timer?
+
     @Published private(set) var regionName: String?
 
     /// 썸네일 탭 시 원본을 보여주기 위한 선택 사진.
@@ -82,6 +87,7 @@ final class MapViewModel: ObservableObject {
 
     private func updateDay() {
         stopPlayback()
+        stopPlannedPlayback()
         guard let trip, let day = selectedDay else {
             dayPoints = []
             stats = .zero
@@ -117,11 +123,11 @@ final class MapViewModel: ObservableObject {
         PlannedRoute.build(dayPlanItems)
     }
 
-    /// 구간별 실제 도로 경로 좌표(leg.order → 좌표열). MKDirections 비동기 결과. 없으면 직선 대체.
+    /// 구간별 실제 경로 좌표(leg.order → 좌표열). 모드별(자동차/도보=Apple, 비행기=대권, 전철=Google) 결과.
     @Published private(set) var legGeometry: [Int: [RoutePlayback.Coord]] = [:]
     private var directionsTask: Task<Void, Never>?
 
-    /// 계획 구간들의 실제 도로 경로를 비동기로 계산해 채운다.
+    /// 계획 구간들의 실제 경로를 비동기로 계산해 채운다(모드별).
     private func loadDirections() {
         directionsTask?.cancel()
         legGeometry = [:]
@@ -130,13 +136,30 @@ final class MapViewModel: ObservableObject {
         directionsTask = Task { [weak self] in
             for leg in legs {
                 if Task.isCancelled { return }
-                if let coords = await DirectionsService.route(from: leg.from, to: leg.to) {
+                if let coords = await DirectionsService.route(from: leg.from, to: leg.to, transport: leg.transport),
+                   coords.count > 1 {
                     if Task.isCancelled { return }
                     self?.legGeometry[leg.order] = coords
                 }
             }
-            Log.map.debug("도로 경로 계산 완료: \(legs.count, privacy: .public)구간")
+            Log.map.debug("경로 계산 완료: \(legs.count, privacy: .public)구간")
         }
+    }
+
+    /// 전체 계획 경로를 하나의 좌표열로 이어 붙임(구간 실제경로, 없으면 직선). 재생용.
+    var plannedPath: [RoutePlayback.Coord] {
+        var path: [RoutePlayback.Coord] = []
+        for leg in plannedRoute.legs {
+            let seg = (legGeometry[leg.order]?.count ?? 0) > 1
+                ? legGeometry[leg.order]!
+                : [leg.from, leg.to]
+            if let last = path.last, last == seg.first {
+                path.append(contentsOf: seg.dropFirst())
+            } else {
+                path.append(contentsOf: seg)
+            }
+        }
+        return path
     }
 
     // MARK: - 좌표 (뷰에서 CLLocationCoordinate2D로 변환)
@@ -209,6 +232,62 @@ final class MapViewModel: ObservableObject {
             pausePlayback()
             reverseGeocodeHead()
         }
+    }
+
+    // MARK: - 계획 경로 재생 (네비게이션처럼 경로 따라 이동)
+
+    /// 계획 경로가 2점 이상이면 재생 가능.
+    var canPlayPlanned: Bool { plannedPath.count > 1 }
+
+    /// 재생 머리(계획 경로를 따라가는 마커) 위치.
+    var plannedHead: RoutePlayback.Coord? {
+        RoutePlayback.position(plannedPath, progress: plannedProgress)
+    }
+
+    func togglePlannedPlayback() {
+        isPlayingPlanned ? pausePlannedPlayback() : playPlanned()
+    }
+
+    func playPlanned() {
+        guard canPlayPlanned else { return }
+        if plannedProgress >= 1 { plannedProgress = 0 }
+        isPlayingPlanned = true
+        // 경로 길이에 비례해 재생 시간(최소 6초, 최대 20초) — 길수록 천천히.
+        let path = plannedPath
+        let meters = pathLength(path)
+        let duration = min(max(meters / 400, 6), 20)
+        let step = (1.0 / 60.0) / duration
+        plannedTimer?.invalidate()
+        plannedTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.plannedTick(step: step) }
+        }
+        Log.map.info("계획 경로 재생 시작: \(path.count, privacy: .public)점, \(Int(meters), privacy: .public)m")
+    }
+
+    func pausePlannedPlayback() {
+        isPlayingPlanned = false
+        plannedTimer?.invalidate()
+        plannedTimer = nil
+    }
+
+    private func stopPlannedPlayback() {
+        pausePlannedPlayback()
+        plannedProgress = 0
+    }
+
+    private func plannedTick(step: Double) {
+        plannedProgress = min(plannedProgress + step, 1)
+        if plannedProgress >= 1 { pausePlannedPlayback() }
+    }
+
+    private func pathLength(_ path: [RoutePlayback.Coord]) -> Double {
+        guard path.count > 1 else { return 0 }
+        var total = 0.0
+        for i in 1..<path.count {
+            total += Geo.distance(lat1: path[i-1].latitude, lon1: path[i-1].longitude,
+                                  lat2: path[i].latitude, lon2: path[i].longitude)
+        }
+        return total
     }
 
     // MARK: - 사진

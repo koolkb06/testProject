@@ -29,20 +29,26 @@ struct MapScreen: View {
                 Annotation("집", coordinate: start.cl) { startMarker }
             }
 
-            // 계획 방문 경로: 실제 도로 경로(있으면 실선) 또는 직선 점선 대체 + 도착지 번호 핀
+            // 계획 방문 경로: 모드별 실제 경로(있으면 실선) 또는 직선 점선 대체 + 도착지 번호 핀
             ForEach(vm.plannedRoute.legs, id: \.order) { leg in
-                if let road = vm.legGeometry[leg.order], road.count > 1 {
-                    MapPolyline(coordinates: road.map(\.cl))
-                        .stroke(.orange, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
-                } else {
-                    MapPolyline(coordinates: [leg.from.cl, leg.to.cl])
-                        .stroke(.orange, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [2, 9]))
-                }
+                let road = vm.legGeometry[leg.order]
+                let hasRoad = (road?.count ?? 0) > 1
+                let coords = hasRoad ? road!.map(\.cl) : [leg.from.cl, leg.to.cl]
+                // 실제 경로 실선, 대체/비행기는 점선
+                MapPolyline(coordinates: coords)
+                    .stroke(.orange, style: (hasRoad && leg.transport != .flight)
+                            ? StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
+                            : StrokeStyle(lineWidth: 4, lineCap: .round, dash: [2, 9]))
             }
             ForEach(vm.plannedRoute.stops, id: \.order) { stop in
                 Annotation(stop.title, coordinate: stop.coord.cl) {
                     PlanStopMarker(number: stop.order, done: stop.isDone)
                 }
+            }
+
+            // 계획 경로 재생 중: 경로를 따라가는 네비 마커
+            if vm.isPlayingPlanned, let head = vm.plannedHead {
+                Annotation("", coordinate: head.cl) { navMarker }
             }
 
             if vm.drawnCoordinates.count > 1 {
@@ -86,6 +92,17 @@ struct MapScreen: View {
                     ))
                 }
             }
+        }
+        .onChange(of: vm.plannedProgress) { _, progress in
+            if vm.isPlayingPlanned, let head = vm.plannedHead {
+                withAnimation(.linear(duration: 1.0 / 60.0)) {
+                    camera = .region(MKCoordinateRegion(
+                        center: head.cl,
+                        span: MKCoordinateSpan(latitudeDelta: 0.006, longitudeDelta: 0.006)
+                    ))
+                }
+            }
+            if progress >= 1 { fitFullRoute() }   // 재생 완료 시에만 전체 경로로 줌아웃
         }
         .onChange(of: vm.isPlaying) { _, playing in
             if !playing { fitFullRoute() }   // 재생 끝나면 전체 경로로 줌아웃
@@ -132,6 +149,16 @@ struct MapScreen: View {
             .frame(width: 28, height: 28)
             .overlay(Circle().stroke(.white, lineWidth: 3))
             .overlay(Image(systemName: "person.fill").font(.system(size: 13)).foregroundStyle(.white))
+            .shadow(radius: 3)
+    }
+
+    /// 계획 경로를 따라가는 네비 마커.
+    private var navMarker: some View {
+        Circle()
+            .fill(.orange)
+            .frame(width: 26, height: 26)
+            .overlay(Circle().stroke(.white, lineWidth: 3))
+            .overlay(Image(systemName: "location.north.fill").font(.system(size: 12)).foregroundStyle(.white))
             .shadow(radius: 3)
     }
 
@@ -191,15 +218,27 @@ struct MapScreen: View {
         VStack(spacing: 12) {
             infoPill
             HStack(spacing: 16) {
-                Button {
-                    vm.togglePlayback()
-                } label: {
-                    Label(vm.isPlaying ? "일시정지" : "경로 재생",
-                          systemImage: vm.isPlaying ? "pause.fill" : "play.fill")
-                        .padding(.horizontal, 16).padding(.vertical, 10)
-                        .background(.ultraThinMaterial, in: Capsule())
+                if vm.canPlayPlanned {
+                    Button {
+                        vm.togglePlannedPlayback()
+                    } label: {
+                        Label(vm.isPlayingPlanned ? "일시정지" : "계획 따라가기",
+                              systemImage: vm.isPlayingPlanned ? "pause.fill" : "location.north.line.fill")
+                            .padding(.horizontal, 16).padding(.vertical, 10)
+                            .background(.orange, in: Capsule())
+                            .foregroundStyle(.white)
+                    }
+                } else {
+                    Button {
+                        vm.togglePlayback()
+                    } label: {
+                        Label(vm.isPlaying ? "일시정지" : "경로 재생",
+                              systemImage: vm.isPlaying ? "pause.fill" : "play.fill")
+                            .padding(.horizontal, 16).padding(.vertical, 10)
+                            .background(.ultraThinMaterial, in: Capsule())
+                    }
+                    .disabled(vm.dayPoints.count < 2)
                 }
-                .disabled(vm.dayPoints.count < 2)
 
                 Button {
                     showCamera = true

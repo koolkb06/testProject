@@ -62,7 +62,7 @@ struct TimelineView: View {
                 HStack(spacing: 8) {
                     Text(Self.timeFormatter.string(from: item.plannedAt))
                     if let route = routeText(item) {
-                        Label(route, systemImage: "arrow.triangle.turn.up.right.diamond")
+                        Label(route, systemImage: item.transport.systemImage)
                     }
                 }
                 .font(.caption)

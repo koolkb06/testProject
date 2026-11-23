@@ -10,20 +10,41 @@ extension MKPolyline {
     }
 }
 
-/// 두 지점 사이 실제 도로 경로를 MKDirections로 계산. (사용자 요청: 직선 대신 길 따라가기)
+/// 이동 수단별 경로 좌표열 계산. (사용자 요청: 자동차/비행기/전철/도보)
+/// - 자동차·도보: Apple MKDirections 실제 도로 경로
+/// - 비행기: 대권(great-circle) 곡선 (어떤 지도 API도 비행경로 없음)
+/// - 전철: Google Directions(키 있으면), 없으면 nil → 직선 대체
 enum DirectionsService {
+    /// 경로 좌표열. nil이면 호출측이 직선으로 대체.
     static func route(
         from: RoutePlayback.Coord,
         to: RoutePlayback.Coord,
-        transport: MKDirectionsTransportType = .automobile
+        transport: LegTransport
+    ) async -> [RoutePlayback.Coord]? {
+        switch transport {
+        case .car:
+            return await apple(from: from, to: to, type: .automobile)
+        case .walk:
+            return await apple(from: from, to: to, type: .walking)
+        case .flight:
+            return Geo.geodesic(lat1: from.latitude, lon1: from.longitude,
+                                lat2: to.latitude, lon2: to.longitude)
+                .map { RoutePlayback.Coord(latitude: $0.latitude, longitude: $0.longitude) }
+        case .transit:
+            return await GoogleDirectionsService.transitRoute(from: from, to: to)
+        }
+    }
+
+    private static func apple(
+        from: RoutePlayback.Coord, to: RoutePlayback.Coord,
+        type: MKDirectionsTransportType
     ) async -> [RoutePlayback.Coord]? {
         let request = MKDirections.Request()
         request.source = MKMapItem(placemark: MKPlacemark(
             coordinate: CLLocationCoordinate2D(latitude: from.latitude, longitude: from.longitude)))
         request.destination = MKMapItem(placemark: MKPlacemark(
             coordinate: CLLocationCoordinate2D(latitude: to.latitude, longitude: to.longitude)))
-        request.transportType = transport
-
+        request.transportType = type
         do {
             let response = try await MKDirections(request: request).calculate()
             guard let polyline = response.routes.first?.polyline else { return nil }

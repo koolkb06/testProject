@@ -5,6 +5,7 @@ import MapKit
 struct PlanDraft {
     var title: String
     var plannedAt: Date
+    var transport: LegTransport
     var memo: String
     var fromPlaceName: String?
     var fromLatitude: Double?
@@ -22,6 +23,7 @@ struct PlanItemEditView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var title: String
     @State private var plannedAt: Date
+    @State private var transport: LegTransport
     @State private var memo: String
     @State private var fromPlaceName: String
     @State private var fromCoord: CLLocationCoordinate2D?
@@ -36,6 +38,7 @@ struct PlanItemEditView: View {
         self.onSave = onSave
         _title = State(initialValue: item?.title ?? "")
         _plannedAt = State(initialValue: item?.plannedAt ?? Date())
+        _transport = State(initialValue: item?.transport ?? .car)
         _memo = State(initialValue: item?.memo ?? "")
         _fromPlaceName = State(initialValue: item?.fromPlaceName ?? "")
         _toPlaceName = State(initialValue: item?.toPlaceName ?? "")
@@ -49,6 +52,11 @@ struct PlanItemEditView: View {
                 Section("일정") {
                     TextField("제목", text: $title)
                     DatePicker("날짜·시간", selection: $plannedAt)
+                    Picker("이동 수단", selection: $transport) {
+                        ForEach(LegTransport.allCases) { t in
+                            Label(t.label, systemImage: t.systemImage).tag(t)
+                        }
+                    }
                 }
                 Section {
                     TextField("출발 장소명 (선택)", text: $fromPlaceName)
@@ -105,7 +113,7 @@ struct PlanItemEditView: View {
 
     private func save() {
         onSave(PlanDraft(
-            title: title, plannedAt: plannedAt, memo: memo,
+            title: title, plannedAt: plannedAt, transport: transport, memo: memo,
             fromPlaceName: fromPlaceName.isEmpty ? nil : fromPlaceName,
             fromLatitude: fromCoord?.latitude, fromLongitude: fromCoord?.longitude,
             toPlaceName: toPlaceName.isEmpty ? nil : toPlaceName,

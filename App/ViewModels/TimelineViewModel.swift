@@ -34,6 +34,7 @@ final class TimelineViewModel: ObservableObject {
             let trip = try ensureTrip()
             let item = PlanItem(
                 title: draft.title, plannedAt: draft.plannedAt, memo: draft.memo,
+                transportRaw: draft.transport.rawValue,
                 fromPlaceName: draft.fromPlaceName,
                 fromLatitude: draft.fromLatitude, fromLongitude: draft.fromLongitude,
                 toPlaceName: draft.toPlaceName,
@@ -50,6 +51,7 @@ final class TimelineViewModel: ObservableObject {
     func update(_ item: PlanItem, draft: PlanDraft) {
         item.title = draft.title
         item.plannedAt = draft.plannedAt
+        item.transport = draft.transport
         item.memo = draft.memo
         item.fromPlaceName = draft.fromPlaceName
         item.fromLatitude = draft.fromLatitude

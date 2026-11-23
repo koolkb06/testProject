@@ -6,6 +6,7 @@ struct SettingsView: View {
     @EnvironmentObject private var recorder: TrackRecorder
     @State private var home: HomeLocation = .current
     @State private var showingPicker = false
+    @State private var googleKey: String = GoogleConfig.apiKey ?? ""
 
     var body: some View {
         List {
@@ -32,6 +33,16 @@ struct SettingsView: View {
                         home = .current
                     }
                 }
+            }
+            Section {
+                SecureField("Google Directions API 키 (선택)", text: $googleKey)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .onChange(of: googleKey) { _, v in GoogleConfig.setAPIKey(v) }
+            } header: {
+                Text("전철 실제 노선 (선택)")
+            } footer: {
+                Text("키를 넣으면 전철 구간이 실제 노선으로 그려집니다. 없으면 직선으로 표시됩니다. (자동차·도보는 Apple 지도로 키 없이 동작)")
             }
             Section("권한") {
                 LabeledContent("위치 권한", value: authText)

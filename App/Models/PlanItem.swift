@@ -11,6 +11,13 @@ final class PlanItem {
     var memo: String
     var isDone: Bool
 
+    /// 이동 수단 raw("car"/"flight"/"transit"/"walk"). 옵셔널로 두어 기존 스토어와 호환.
+    var transportRaw: String?
+    var transport: LegTransport {
+        get { LegTransport.from(transportRaw) }
+        set { transportRaw = newValue.rawValue }
+    }
+
     // 출발지(선택). 비우면 이전 일정 도착지로 대체.
     var fromPlaceName: String?
     var fromLatitude: Double?
@@ -29,6 +36,7 @@ final class PlanItem {
         plannedAt: Date,
         memo: String = "",
         isDone: Bool = false,
+        transportRaw: String? = nil,
         fromPlaceName: String? = nil,
         fromLatitude: Double? = nil,
         fromLongitude: Double? = nil,
@@ -42,6 +50,7 @@ final class PlanItem {
         self.plannedAt = plannedAt
         self.memo = memo
         self.isDone = isDone
+        self.transportRaw = transportRaw
         self.fromPlaceName = fromPlaceName
         self.fromLatitude = fromLatitude
         self.fromLongitude = fromLongitude

@@ -31,11 +31,14 @@ enum SampleData {
         // 호텔 → 센소지 → 스카이트리 → 우에노
         let hotel = (35.6938, 139.7036)
         context.insert(PlanItem(title: "센소지 방문", plannedAt: day.addingTimeInterval(2 * 3600),
+                                transportRaw: "car",
                                 fromPlaceName: "호텔", fromLatitude: hotel.0, fromLongitude: hotel.1,
                                 toPlaceName: "센소지", toLatitude: 35.7148, toLongitude: 139.7967, trip: trip))
         context.insert(PlanItem(title: "스카이트리 이동", plannedAt: day.addingTimeInterval(4 * 3600),
+                                transportRaw: "transit",
                                 toPlaceName: "도쿄 스카이트리", toLatitude: 35.7101, toLongitude: 139.8107, trip: trip))
         context.insert(PlanItem(title: "우에노 공원", plannedAt: day.addingTimeInterval(6 * 3600),
+                                transportRaw: "walk",
                                 toPlaceName: "우에노 공원", toLatitude: 35.7156, toLongitude: 139.7730, trip: trip))
 
         // 투두

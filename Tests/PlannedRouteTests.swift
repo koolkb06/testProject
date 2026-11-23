@@ -9,6 +9,7 @@ private struct FakeLeg: PlannedLegSource {
     var plannedAt: Date
     var title: String
     var isDone: Bool = false
+    var transport: LegTransport = .car
 }
 
 final class PlannedRouteTests: XCTestCase {

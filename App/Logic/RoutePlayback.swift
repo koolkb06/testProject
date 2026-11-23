@@ -9,7 +9,7 @@ enum RoutePlayback {
     }
 
     /// 누적 거리 기준 진행도 위치. progress는 0...1로 clamp.
-    static func position<T: GeoTimed>(_ pts: [T], progress: Double) -> Coord? {
+    static func position<T: LatLon>(_ pts: [T], progress: Double) -> Coord? {
         guard let first = pts.first else { return nil }
         guard pts.count > 1 else {
             return Coord(latitude: first.latitude, longitude: first.longitude)
@@ -32,7 +32,7 @@ enum RoutePlayback {
     }
 
     /// 진행도까지 그려진 폴리라인 좌표들(부분 그리기용). 마지막은 보간된 머리 위치.
-    static func drawnCoordinates<T: GeoTimed>(_ pts: [T], progress: Double) -> [Coord] {
+    static func drawnCoordinates<T: LatLon>(_ pts: [T], progress: Double) -> [Coord] {
         guard let first = pts.first else { return [] }
         guard pts.count > 1 else {
             return [Coord(latitude: first.latitude, longitude: first.longitude)]
@@ -62,7 +62,7 @@ enum RoutePlayback {
 
     private static func clamp(_ v: Double) -> Double { min(max(v, 0), 1) }
 
-    private static func cumulative<T: GeoTimed>(_ pts: [T]) -> (cum: [Double], total: Double) {
+    private static func cumulative<T: LatLon>(_ pts: [T]) -> (cum: [Double], total: Double) {
         var cum = [0.0]
         var total = 0.0
         for i in 1..<pts.count {
