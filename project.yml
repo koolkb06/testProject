@@ -1,0 +1,52 @@
+name: TravelTracker
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    GENERATE_INFOPLIST_FILE: "NO"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  TravelTracker:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Travel Tracker
+        UILaunchScreen: {}
+        UIApplicationSupportsIndirectInputEvents: true
+        NSLocationWhenInUseUsageDescription: "여행 경로를 지도에 기록하려면 위치 접근이 필요합니다."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "앱이 꺼져 있어도 여행 경로를 계속 기록하려면 '항상 허용' 위치 접근이 필요합니다."
+        UIBackgroundModes:
+          - location
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.TravelTracker
+        TARGETED_DEVICE_FAMILY: "1"
+  TravelTrackerTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: TravelTracker
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.TravelTrackerTests
+        GENERATE_INFOPLIST_FILE: "YES"
+schemes:
+  TravelTracker:
+    build:
+      targets:
+        TravelTracker: all
+        TravelTrackerTests: [test]
+    test:
+      targets:
+        - TravelTrackerTests

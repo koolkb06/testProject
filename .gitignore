@@ -1,0 +1,13 @@
+# XcodeGen이 생성 — project.yml에서 재생성 가능
+TravelTracker.xcodeproj/
+
+# Xcode / 빌드 산출물
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.DS_Store
+
+# SwiftPM
+.swiftpm/
+.build/
