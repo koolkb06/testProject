@@ -27,6 +27,15 @@ final class TodoViewModel: ObservableObject {
         }
     }
 
+    func update(_ item: TodoItem, title: String, dueDate: Date?) {
+        let trimmed = title.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        item.title = trimmed
+        item.dueDate = dueDate
+        try? repository.save()
+        reload()
+    }
+
     func toggle(_ item: TodoItem) {
         item.isDone.toggle()
         try? repository.save()

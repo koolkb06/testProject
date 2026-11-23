@@ -28,14 +28,15 @@ final class TimelineViewModel: ObservableObject {
         buckets = CalendarGrouping.byDay(items, calendar: calendar) { $0.plannedAt }
     }
 
-    func add(title: String, plannedAt: Date, placeName: String?, memo: String) {
-        guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+    func add(_ draft: PlanDraft) {
+        guard !draft.title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         do {
             let trip = try ensureTrip()
             let item = PlanItem(
-                title: title, plannedAt: plannedAt,
-                placeName: placeName?.isEmpty == true ? nil : placeName,
-                memo: memo
+                title: draft.title, plannedAt: draft.plannedAt,
+                placeName: draft.placeName,
+                latitude: draft.latitude, longitude: draft.longitude,
+                memo: draft.memo
             )
             try planRepository.add(item, to: trip)
             reload()
@@ -44,11 +45,13 @@ final class TimelineViewModel: ObservableObject {
         }
     }
 
-    func update(_ item: PlanItem, title: String, plannedAt: Date, placeName: String?, memo: String) {
-        item.title = title
-        item.plannedAt = plannedAt
-        item.placeName = (placeName?.isEmpty == true) ? nil : placeName
-        item.memo = memo
+    func update(_ item: PlanItem, draft: PlanDraft) {
+        item.title = draft.title
+        item.plannedAt = draft.plannedAt
+        item.placeName = draft.placeName
+        item.memo = draft.memo
+        item.latitude = draft.latitude
+        item.longitude = draft.longitude
         try? planRepository.save()
         reload()
     }
@@ -67,6 +70,6 @@ final class TimelineViewModel: ObservableObject {
     /// 계획을 붙일 여행이 없으면 하나 만든다(기록 시작 전에도 계획 가능).
     private func ensureTrip() throws -> Trip {
         if let trip = try tripRepository.latestTrip() { return trip }
-        return try tripRepository.startTrip(name: "일본 여행", startDate: Date(), home: .default)
+        return try tripRepository.startTrip(name: "일본 여행", startDate: Date(), home: .current)
     }
 }

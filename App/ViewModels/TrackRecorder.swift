@@ -13,7 +13,9 @@ final class TrackRecorder: ObservableObject {
     private let locationService: LocationServing
     private let repository: TrackRepository
     private let filter: TrackPointFilter
-    private let home: HomeLocation
+    /// 테스트용 고정 집 위치. nil이면 설정에서 교정 가능한 현재 집 위치(.current)를 매번 읽는다.
+    private let homeOverride: HomeLocation?
+    private var home: HomeLocation { homeOverride ?? .current }
 
     private var trip: Trip?
     private var lastAccepted: LocationSample?
@@ -22,12 +24,12 @@ final class TrackRecorder: ObservableObject {
         locationService: LocationServing,
         repository: TrackRepository,
         filter: TrackPointFilter = TrackPointFilter(),
-        home: HomeLocation = .default
+        home: HomeLocation? = nil
     ) {
         self.locationService = locationService
         self.repository = repository
         self.filter = filter
-        self.home = home
+        self.homeOverride = home
         self.authorizationStatus = locationService.authorizationStatus
 
         // CLLocationManagerDelegate 콜백은 서비스를 시작한 스레드(여기선 메인)에서 호출된다.

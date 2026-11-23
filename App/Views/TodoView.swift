@@ -4,6 +4,8 @@ import SwiftUI
 struct TodoView: View {
     @EnvironmentObject private var vm: TodoViewModel
     @State private var newTitle = ""
+    @State private var editingItem: TodoItem?
+    @State private var showingNew = false
 
     var body: some View {
         NavigationStack {
@@ -25,6 +27,17 @@ struct TodoView: View {
                 inputBar
             }
             .navigationTitle("투두")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showingNew = true } label: { Image(systemName: "calendar.badge.plus") }
+                }
+            }
+            .sheet(isPresented: $showingNew) {
+                TodoEditView(item: nil) { title, due in vm.add(title: title, dueDate: due) }
+            }
+            .sheet(item: $editingItem) { item in
+                TodoEditView(item: item) { title, due in vm.update(item, title: title, dueDate: due) }
+            }
             .onAppear { vm.reload() }
         }
     }
@@ -48,6 +61,8 @@ struct TodoView: View {
             }
             Spacer()
         }
+        .contentShape(Rectangle())
+        .onTapGesture { editingItem = item }
         .swipeActions {
             Button(role: .destructive) { vm.delete(item) } label: {
                 Label("삭제", systemImage: "trash")

@@ -26,14 +26,10 @@ struct TimelineView: View {
                 }
             }
             .sheet(isPresented: $showingNew) {
-                PlanItemEditView(item: nil) { title, date, place, memo in
-                    vm.add(title: title, plannedAt: date, placeName: place, memo: memo)
-                }
+                PlanItemEditView(item: nil) { draft in vm.add(draft) }
             }
             .sheet(item: $editingItem) { item in
-                PlanItemEditView(item: item) { title, date, place, memo in
-                    vm.update(item, title: title, plannedAt: date, placeName: place, memo: memo)
-                }
+                PlanItemEditView(item: item) { draft in vm.update(item, draft: draft) }
             }
             .onAppear { vm.reload() }
         }

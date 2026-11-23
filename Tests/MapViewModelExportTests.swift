@@ -29,7 +29,8 @@ final class MapViewModelExportTests: XCTestCase {
         try trackRepo.append(LocationSample(latitude: 37.36, longitude: 127.13,
                                             horizontalAccuracy: 5, timestamp: base.addingTimeInterval(120)), to: trip)
 
-        let vm = MapViewModel(repository: trackRepo, photoRepository: photoRepo)
+        let planRepo = SwiftDataPlanRepository(context: container.mainContext)
+        let vm = MapViewModel(repository: trackRepo, photoRepository: photoRepo, planRepository: planRepo)
         vm.reload()
 
         let url = try XCTUnwrap(vm.exportURL(format: .gpx))
@@ -45,7 +46,8 @@ final class MapViewModelExportTests: XCTestCase {
     func testExportWithNoTripReturnsNil() throws {
         let trackRepo = SwiftDataTrackRepository(context: container.mainContext)
         let photoRepo = SwiftDataPhotoRepository(context: container.mainContext)
-        let vm = MapViewModel(repository: trackRepo, photoRepository: photoRepo)
+        let planRepo = SwiftDataPlanRepository(context: container.mainContext)
+        let vm = MapViewModel(repository: trackRepo, photoRepository: photoRepo, planRepository: planRepo)
         vm.reload()
         XCTAssertNil(vm.exportURL(format: .kml))
     }

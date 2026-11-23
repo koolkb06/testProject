@@ -14,6 +14,7 @@ final class MapViewModel: ObservableObject {
     private var isReloading = false
     @Published private(set) var dayPoints: [TrackPoint] = []
     @Published private(set) var dayPhotos: [Photo] = []
+    @Published private(set) var dayPlanItems: [PlanItem] = []
     @Published private(set) var stats: TripStats = .zero
 
     /// 재생 진행도 0...1. 로드/정지 상태에서는 1(전체 경로 표시).
@@ -29,6 +30,7 @@ final class MapViewModel: ObservableObject {
 
     private let repository: TrackRepository
     private let photoRepository: PhotoRepository
+    private let planRepository: PlanRepository
     private let photoService: PhotoService
     private let calendar: Calendar
     private let geocoder = CLGeocoder()
@@ -40,11 +42,13 @@ final class MapViewModel: ObservableObject {
     init(
         repository: TrackRepository,
         photoRepository: PhotoRepository,
+        planRepository: PlanRepository,
         photoService: PhotoService = PhotoService(),
         calendar: Calendar = .current
     ) {
         self.repository = repository
         self.photoRepository = photoRepository
+        self.planRepository = planRepository
         self.photoService = photoService
         self.calendar = calendar
     }
@@ -61,7 +65,11 @@ final class MapViewModel: ObservableObject {
         }
         self.trip = trip
         let all = (try? repository.points(for: trip)) ?? []
-        availableDays = DayGrouping(calendar: calendar).group(all).map(\.day)
+        // 조회 가능한 날짜 = 기록된 날 ∪ 계획이 있는 날 (계획만 있는 날도 지도에서 볼 수 있게)
+        let trackDays = DayGrouping(calendar: calendar).group(all).map(\.day)
+        let planItems = (try? planRepository.items(for: trip)) ?? []
+        let planDays = CalendarGrouping.byDay(planItems, calendar: calendar) { $0.plannedAt }.map(\.day)
+        availableDays = Array(Set(trackDays + planDays)).sorted()
         if selectedDay == nil || !(availableDays.contains(selectedDay!)) {
             isReloading = true          // selectedDay didSet의 중복 updateDay 방지
             selectedDay = availableDays.last
@@ -83,6 +91,7 @@ final class MapViewModel: ObservableObject {
         stats = StatsCalculator.stats(dayPoints)
         playbackProgress = 1
         reloadPhotos(day: day)
+        reloadPlanItems(day: day)
         reverseGeocodeHead()
     }
 
@@ -90,6 +99,24 @@ final class MapViewModel: ObservableObject {
         guard let trip else { dayPhotos = []; return }
         let all = (try? photoRepository.photos(for: trip)) ?? []
         dayPhotos = all.filter { calendar.isDate($0.takenAt, inSameDayAs: day) }
+    }
+
+    private func reloadPlanItems(day: Date) {
+        guard let trip else { dayPlanItems = []; return }
+        let all = (try? planRepository.items(for: trip)) ?? []
+        dayPlanItems = all
+            .filter { calendar.isDate($0.plannedAt, inSameDayAs: day) }
+            .sorted { $0.plannedAt < $1.plannedAt }
+    }
+
+    /// 계획 방문 경로(좌표 있는 일정을 시간순 연결). 실제 기록 경로와 구분되는 "가야 할 길".
+    var plannedRouteCoordinates: [RoutePlayback.Coord] {
+        PlannedRoute.coordinates(dayPlanItems)
+    }
+
+    /// 좌표가 있는 계획 지점(지도에 번호 핀 표시용, 시간순).
+    var plannedStops: [PlanItem] {
+        dayPlanItems.filter { $0.latitude != nil && $0.longitude != nil }
     }
 
     // MARK: - 좌표 (뷰에서 CLLocationCoordinate2D로 변환)
@@ -112,9 +139,17 @@ final class MapViewModel: ObservableObject {
         RoutePlayback.position(dayPoints, progress: playbackProgress)
     }
 
-    /// 전체 경로를 담는 지도 영역.
+    /// 전체 경로 + 계획 지점을 담는 지도 영역.
     var fullRegion: RegionBox? {
-        RegionCalculator.bounding(dayPoints)
+        var samples = dayPoints.map {
+            LocationSample(latitude: $0.latitude, longitude: $0.longitude,
+                           horizontalAccuracy: 0, timestamp: $0.timestamp)
+        }
+        samples += plannedStops.map {
+            LocationSample(latitude: $0.latitude!, longitude: $0.longitude!,
+                           horizontalAccuracy: 0, timestamp: $0.plannedAt)
+        }
+        return RegionCalculator.bounding(samples)
     }
 
     // MARK: - 재생

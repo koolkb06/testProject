@@ -17,4 +17,7 @@ struct HomeLocation: Equatable {
         latitude: 37.332388,
         longitude: 127.112209
     )
+
+    /// 현재 유효한 집 위치: 설정에서 교정한 값이 있으면 그것, 없으면 기본값.
+    static var current: HomeLocation { HomeStore.load() ?? .default }
 }

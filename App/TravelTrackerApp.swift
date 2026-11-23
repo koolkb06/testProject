@@ -20,6 +20,7 @@ struct TravelTrackerApp: App {
             fatalError("ModelContainer 생성 실패: \(error)")
         }
         self.container = container
+        SampleData.seedIfRequested(container.mainContext)
 
         let repository = SwiftDataTrackRepository(context: container.mainContext)
         _recorder = StateObject(
@@ -29,16 +30,18 @@ struct TravelTrackerApp: App {
             )
         )
         let photoRepository = SwiftDataPhotoRepository(context: container.mainContext)
+        let planRepository = SwiftDataPlanRepository(context: container.mainContext)
         _mapViewModel = StateObject(
             wrappedValue: MapViewModel(
                 repository: repository,
-                photoRepository: photoRepository
+                photoRepository: photoRepository,
+                planRepository: planRepository
             )
         )
         _timelineViewModel = StateObject(
             wrappedValue: TimelineViewModel(
                 tripRepository: repository,
-                planRepository: SwiftDataPlanRepository(context: container.mainContext)
+                planRepository: planRepository
             )
         )
         _todoViewModel = StateObject(

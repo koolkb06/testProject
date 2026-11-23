@@ -29,6 +29,19 @@ struct MapScreen: View {
                 Annotation("집", coordinate: start.cl) { startMarker }
             }
 
+            // 계획 방문 경로(주황 점선) + 번호 핀 — 실제 기록과 구분
+            if vm.plannedRouteCoordinates.count > 1 {
+                MapPolyline(coordinates: vm.plannedRouteCoordinates.map(\.cl))
+                    .stroke(.orange, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [2, 9]))
+            }
+            ForEach(Array(vm.plannedStops.enumerated()), id: \.element.id) { idx, stop in
+                Annotation(stop.title, coordinate: CLLocationCoordinate2D(
+                    latitude: stop.latitude ?? 0, longitude: stop.longitude ?? 0)
+                ) {
+                    PlanStopMarker(number: idx + 1, done: stop.isDone)
+                }
+            }
+
             if vm.drawnCoordinates.count > 1 {
                 MapPolyline(coordinates: vm.drawnCoordinates.map(\.cl))
                     .stroke(.blue, style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
@@ -251,6 +264,27 @@ struct MapScreen: View {
         let total = Int(seconds)
         let h = total / 3600, m = (total % 3600) / 60
         return h > 0 ? "\(h)시간 \(m)분" : "\(m)분"
+    }
+}
+
+/// 계획 방문 지점 마커(주황 번호 핀). 실제 기록 마커와 구분.
+struct PlanStopMarker: View {
+    let number: Int
+    let done: Bool
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(done ? Color.green : Color.orange)
+                .frame(width: 26, height: 26)
+                .overlay(Circle().stroke(.white, lineWidth: 2))
+            if done {
+                Image(systemName: "checkmark").font(.caption2.bold()).foregroundStyle(.white)
+            } else {
+                Text("\(number)").font(.caption2.bold()).foregroundStyle(.white)
+            }
+        }
+        .shadow(radius: 2)
     }
 }
 
