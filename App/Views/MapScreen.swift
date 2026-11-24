@@ -22,9 +22,13 @@ struct MapScreen: View {
     @State private var camera: MapCameraPosition = .automatic
     @State private var showCamera = false
     @State private var exportFile: ExportFile?
+    @State private var showLocationSettingsAlert = false
 
     var body: some View {
         Map(position: $camera) {
+            // 실시간 현재 위치(파란 점). 기록 중이 아니어도 표시된다.
+            UserAnnotation()
+
             if let start = vm.startCoordinate {
                 Annotation("집", coordinate: start.cl) { startMarker }
             }
@@ -80,7 +84,8 @@ struct MapScreen: View {
         }
         .onChange(of: recorder.pointCount) { _, _ in
             vm.reload()
-            if !vm.isPlaying { fitFullRoute() }
+            // "내 위치"로 따라가는 중이면 화면을 전체 경로로 되돌리지 않는다.
+            if !vm.isPlaying && !camera.followsUserLocation { fitFullRoute() }
         }
         .onChange(of: vm.selectedDay) { _, _ in fitFullRoute() }
         .onChange(of: vm.playbackProgress) { _, _ in
@@ -131,6 +136,52 @@ struct MapScreen: View {
         } message: {
             Text(vm.captureError ?? "")
         }
+        .alert("위치 권한 필요", isPresented: $showLocationSettingsAlert) {
+            Button("설정 열기") { openAppSettings() }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("현재 위치를 보려면 설정 앱에서 위치 접근을 허용해 주세요.")
+        }
+    }
+
+    // MARK: - 내 위치
+
+    private var myLocationButton: some View {
+        Button(action: goToMyLocation) {
+            Image(systemName: camera.followsUserLocation ? "location.fill" : "location")
+                .font(.title3)
+                .padding(10)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+        .accessibilityLabel("내 위치")
+    }
+
+    private func goToMyLocation() {
+        switch MyLocation.action(for: recorder.authorizationStatus) {
+        case .follow:
+            vm.stopAllPlayback()
+            // GPS 수신 전이면 마지막 기록 위치 → 집 순서로 대신 보여준다.
+            let fallback = MyLocation.fallbackRegion(lastSample: recorder.lastSample, home: .current)
+            let fallbackPosition: MapCameraPosition = fallback.map { .region($0.mkRegion) } ?? .automatic
+            Log.map.info("내 위치로 이동 (대체 영역 \(fallback == nil ? "없음" : "있음", privacy: .public))")
+            withAnimation(.easeInOut) {
+                camera = .userLocation(followsHeading: false, fallback: fallbackPosition)
+            }
+        case .requestPermission:
+            Log.map.info("내 위치: 권한 미결정 → 권한 요청")
+            recorder.requestAuthorization()
+        case .openSettings:
+            Log.map.notice("내 위치: 권한 거부/제한 → 설정 안내")
+            showLocationSettingsAlert = true
+        }
+    }
+
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else {
+            Log.map.error("설정 앱 URL 생성 실패")
+            return
+        }
+        UIApplication.shared.open(url)
     }
 
     // MARK: - 마커
@@ -175,6 +226,7 @@ struct MapScreen: View {
             Spacer()
             if !vm.availableDays.isEmpty { dayMenu }
             exportMenu
+            myLocationButton
         }
         .padding()
     }

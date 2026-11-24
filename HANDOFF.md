@@ -21,10 +21,11 @@
 - **계획 경로 재생("계획 따라가기")**: 실제 경로를 따라 마커가 네비처럼 이동(수동 시작/정지).
 - **위치 선택**: 지도 핀 + 주소/장소 검색(한국·일본).
 - **투두**: 전역 체크리스트, 마감일, 미완료 우선 정렬, 키보드 내리기.
+- **내 위치**: 실시간 현재 위치 파란 점 + 상단 우측 "내 위치" 버튼(이동·따라가기, 권한 요청/설정 안내, GPS 전 대체 위치).
 - **설정**: 집 위치 지도핀 교정, Google Directions API 키 입력(선택), 위치 권한 표시.
 - **로깅**: os.Logger(subsystem `com.example.TravelTracker`) 카테고리별 세밀 로그.
 
-다음 할 일: PROGRESS.md의 "다음 단계" 참조(현재 위치 잡기 = 2026-11-25 예정).
+다음 할 일: PROGRESS.md의 "다음 단계" 참조(실기기 필드 테스트, 지도 제공자 선택은 보류).
 
 ## 기술 스택
 
@@ -59,6 +60,7 @@ App/
  │   ├ TodoOrdering.swift      투두 정렬 규칙 (순수)
  │   ├ RoutePlayback.swift     재생 보간·부분 폴리라인 (순수)
  │   ├ RegionCalculator.swift  지도 표시 영역 계산 (순수, MapKit 비의존)
+ │   ├ MyLocation.swift        "내 위치" 버튼 판단(권한별 동작, GPS 전 대체 영역) (순수)
  │   └ TripExporter.swift      GPX/KML 생성 + 임시파일 쓰기 (순수)
  ├ Services/
  │   ├ LocationService.swift   LocationServing 프로토콜 + CLLocationService(실제)

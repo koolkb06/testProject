@@ -226,6 +226,12 @@ final class MapViewModel: ObservableObject {
         playbackProgress = 1
     }
 
+    /// 기록 재생·계획 재생을 모두 멈춘다. ("내 위치"로 이동할 때 카메라를 뺏기지 않도록)
+    func stopAllPlayback() {
+        stopPlayback()
+        stopPlannedPlayback()
+    }
+
     private func tick(step: Double) {
         playbackProgress = min(playbackProgress + step, 1)
         if playbackProgress >= 1 {
